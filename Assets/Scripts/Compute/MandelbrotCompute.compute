@@ -1,0 +1,139 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMandelbrot
+#pragma kernel CSJulia
+#pragma kernel CSCleanup
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> MandelTexture;
+int _width;
+int _height;
+int _iterations;
+float cap;
+float2 position;
+float2 cVal;
+float zoom;
+float test;
+int r;
+int g;
+int b;
+float percentage;
+bool useZoomIterations;
+
+struct Complex
+{
+    float real;
+    float imaginary;
+};
+
+Complex CAdd(Complex one, Complex two)
+{
+    Complex result;
+    result.real = one.real + two.real;
+    result.imaginary = one.imaginary + two.imaginary;
+    return result;
+}
+
+Complex CSubtract(Complex one, Complex two)
+{
+    Complex result;
+    result.real = one.real - two.real;
+    result.imaginary = one.imaginary - two.imaginary;
+    return result;
+}
+
+Complex CMult(Complex one, Complex two)
+{
+    Complex result;
+    result.real = one.real * two.real - one.imaginary * two.imaginary;
+    result.imaginary = one.real * two.imaginary + one.imaginary * two.real;
+    return result;
+}
+
+float CMaginute(Complex one)
+{
+    return length(float2(one.real, one.imaginary));
+}
+
+[numthreads(32,32,1)]
+void CSMandelbrot (uint3 id : SV_DispatchThreadID)
+{
+    float2 extends = float2(1.5, 1.5 * 9 / 16) / (float)zoom;
+    float2 min = (float2)position - extends;
+    float2 max = (float2) position + extends;
+    float currentX = min.x * (1 - ((float) id.x / _width)) + max.x * ((float) id.x / _width);
+    float currentY = min.y * (1 - ((float) id.y / _height)) + max.y * ((float) id.y / _height);
+    Complex current;
+    current.real = currentX;
+    current.imaginary = currentY;
+    Complex complex;
+    complex.real = 0;
+    complex.imaginary = 0;
+    int limit = useZoomIterations ? sqrt(zoom) * test : _iterations;
+    for (int i = 0; i < limit; i++)
+    {
+        if (CMaginute(complex) > cap)
+        {
+            if(useZoomIterations){
+                float zoomVal = sqrt(zoom);
+                MandelTexture[id.xy] = float4(((float) i / r / zoomVal % 1) * percentage, ((float) i / g / zoomVal % 1) * percentage, ((float) i / b / zoomVal % 1) * percentage, 1);
+            }
+            else{
+                MandelTexture[id.xy] = float4(((float) i / r % 1) * percentage, ((float) i / g % 1) * percentage, ((float) i / b % 1) * percentage, 1);
+            }
+            //MandelTexture[id.xy] = float4((float) i / r % 1, (float) i / g % 1, (float) i / b % 1, 1);
+                        return;
+        }
+        complex = CAdd(CMult(complex, complex), current);
+    }
+    
+    //MandelTexture[id.xy] = float4(0, 0, 0, 1);
+}
+
+[numthreads(32, 32, 1)]
+void CSJulia(uint3 id : SV_DispatchThreadID)
+{
+    
+    float2 extends = float2(1.5, 1.5 * 9 / 16) / (float) zoom;
+    float2 min = (float2) position - extends;
+    float2 max = (float2) position + extends;
+    float currentX = min.x * (1 - ((float) id.x / _width)) + max.x * ((float) id.x / _width);
+    float currentY = min.y * (1 - ((float) id.y / _height)) + max.y * ((float) id.y / _height);
+    if (distance(float2(currentX, currentY), cVal) < 0.01 / zoom)
+    {
+        MandelTexture[id.xy] = float4(1, 1, 1, 1);
+        return;
+    }
+    Complex current;
+    current.real = cVal.x;
+    current.imaginary = cVal.y;
+    Complex complex;
+    complex.real = currentX;
+    complex.imaginary = currentY;
+    int limit = useZoomIterations ? sqrt(zoom) * test : _iterations;
+    for (int i = 0; i < limit; i++)
+    {
+        if (CMaginute(complex) > cap)
+        {
+            //MandelTexture[id.xy] = float4((float) i / r % 1, (float) i / g % 1, (float) i / b % 1, 1);
+            if(useZoomIterations){
+                float zoomVal = sqrt(zoom);
+                MandelTexture[id.xy] = float4(MandelTexture[id.xy].x + ((float) i / r /zoomVal % 1) * (1 - percentage), MandelTexture[id.xy].y + ((float) i / g /zoomVal % 1) * (1 - percentage), MandelTexture[id.xy].z + ((float) i / b /zoomVal % 1) * (1 - percentage), 1);
+
+            }
+            else{
+                MandelTexture[id.xy] = float4(MandelTexture[id.xy].x + ((float) i / r % 1) * (1 - percentage), MandelTexture[id.xy].y + ((float) i / g % 1) * (1 - percentage), MandelTexture[id.xy].z + ((float) i / b % 1) * (1 - percentage), 1);
+            }
+            return;
+        }
+        complex = CAdd(CMult(complex, complex), current);
+    }
+    
+    //MandelTexture[id.xy] = float4(0, 0, 0, 1);
+}
+
+[numthreads(32, 32, 1)]
+void CSCleanup(uint3 id : SV_DispatchThreadID)
+{
+    MandelTexture[id.xy] = float4(0, 0, 0, 1);
+}
