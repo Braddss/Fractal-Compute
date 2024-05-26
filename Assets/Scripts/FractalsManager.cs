@@ -151,7 +151,6 @@ public class FractalsManager : MonoBehaviour
         fractals.SetFloat("_zoom", zoom);
         fractals.SetInts("_rgb", rgb.x, rgb.y, rgb.z);
         fractals.SetInts("_rgbOffset", rgbOffset.x, rgbOffset.y, rgbOffset.z);
-        fractals.SetFloat("_test", zoomMultiplier);
         fractals.SetFloat("_percentage", percentage);
         fractals.SetBool("_useZoomIterations", useZoomIterations);
         fractals.SetFloat("_zoomMultiplier", zoomMultiplier);

@@ -27,7 +27,6 @@ float3 GetColorFromIndex(int index)
 
     float fIndex = index;
     
-
     return float3((((fIndex + _rgbOffset.r) / _rgb.r) % 1), (((fIndex + _rgbOffset.g) / _rgb.g) % 1), (((fIndex + _rgbOffset.b) / _rgb.b) % 1));
 }
 
