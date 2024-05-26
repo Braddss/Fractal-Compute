@@ -16,6 +16,8 @@ public class MandelbrotSet : MonoBehaviour
     private float iterations;
     [SerializeField]
     private float cap;
+    [SerializeField]
+    private float capMultiplier;
 
     Vector2 position = new Vector2(-0.5f, 0f);
     Vector2 juliaPos = Vector2.zero;
@@ -178,6 +180,7 @@ public class MandelbrotSet : MonoBehaviour
     {
         fractals.SetInt("_iterations", (int)iterations);
         fractals.SetFloat("_cap", cap);
+        fractals.SetFloat("_capMultiplier", capMultiplier);
         fractals.SetFloats("_juliaPos", juliaPos.x, juliaPos.y);
         fractals.SetFloats("_position", position.x, position.y);
         fractals.SetFloat("_zoom", zoom);

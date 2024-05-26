@@ -366,15 +366,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mandelBrot: {fileID: 7200000, guid: 2a30057f660ede144a2e186b2ced014c, type: 3}
-  mandelTexture: {fileID: 0}
+  fractals: {fileID: 7200000, guid: eb1c822a9b2427b4cb3032abf3b36974, type: 3}
+  fractalTexture: {fileID: 0}
   iterations: 100
   cap: 2
+  capMultiplier: 0
   zoom: 1
   r: 9
   g: 20
   b: 567
   test: 20
-  c: {fileID: 0}
   percentage: 1
   useZoomIterations: 0
 --- !u!1660057539 &9223372036854775807

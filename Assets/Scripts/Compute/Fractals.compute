@@ -9,6 +9,7 @@ int _width;
 int _height;
 int _iterations;
 float _cap;
+float _capMultiplier;
 float2 _position;
 float2 _juliaPos;
 float _zoom;
@@ -47,11 +48,14 @@ void CSFractals(uint3 id : SV_DispatchThreadID)
     Complex current;
     current.real = currentX;
     current.imaginary = currentY;
+
+    float midPoint = float2(_width / 2, _height / 2);
+    float capDistance = distance(midPoint, float2(id.xy));
     
     float3 mandelbrotColor = float3(0, 0, 0);
     if (_percentage > 0)
     {
-        int mandelbrot = SampleMandelBrot(current, _cap, iterations);
+        int mandelbrot = SampleMandelBrot(current, _cap + capDistance * _capMultiplier, iterations);
 
         mandelbrotColor = GetColorFromIndex(mandelbrot);
     }
@@ -70,7 +74,7 @@ void CSFractals(uint3 id : SV_DispatchThreadID)
             return;
         }
         
-        int julia = SampleJulia(juliaPos, current, _cap, iterations);
+        int julia = SampleJulia(juliaPos, current, _cap + capDistance * _capMultiplier, iterations);
 
         juliaColor = GetColorFromIndex(julia);
     }
