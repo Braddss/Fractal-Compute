@@ -9,14 +9,14 @@ int _width;
 int _height;
 int _iterations;
 float _cap;
-float _capMultiplier;
 float2 _position;
 float2 _juliaPos;
 float _zoom;
 int3 _rgb;
-float _test;
+int3 _rgbOffset;
 float _percentage;
 bool _useZoomIterations;
+float _zoomMultiplier;
 
 float3 GetColorFromIndex(int index)
 {
@@ -25,13 +25,10 @@ float3 GetColorFromIndex(int index)
         return float3(0, 0, 0);
     }
 
-    if (_useZoomIterations)
-    {
-        float zoomVal = sqrt(_zoom);
-        return float3(((float) index / _rgb.r / zoomVal % 1), ((float) index / _rgb.g / zoomVal % 1), ((float) index / _rgb.b / zoomVal % 1));
-    }
+    float fIndex = index;
     
-    return float3(((float) index / _rgb.r % 1), ((float) index / _rgb.g % 1), ((float) index / _rgb.b % 1));
+
+    return float3((((fIndex + _rgbOffset.r) / _rgb.r) % 1), (((fIndex + _rgbOffset.g) / _rgb.g) % 1), (((fIndex + _rgbOffset.b) / _rgb.b) % 1));
 }
 
 [numthreads(32, 32, 1)]
@@ -43,19 +40,16 @@ void CSFractals(uint3 id : SV_DispatchThreadID)
     float currentX = min.x * (1 - ((float) id.x / _width)) + max.x * ((float) id.x / _width);
     float currentY = min.y * (1 - ((float) id.y / _height)) + max.y * ((float) id.y / _height);
     
-    int iterations = _useZoomIterations ? sqrt(_zoom) * _test : _iterations;
+    int iterations = _useZoomIterations ? sqrt(_zoom) * _zoomMultiplier : _iterations;
     
     Complex current;
     current.real = currentX;
     current.imaginary = currentY;
 
-    float midPoint = float2(_width / 2, _height / 2);
-    float capDistance = distance(midPoint, float2(id.xy));
-    
     float3 mandelbrotColor = float3(0, 0, 0);
     if (_percentage > 0)
     {
-        int mandelbrot = SampleMandelBrot(current, _cap + capDistance * _capMultiplier, iterations);
+        int mandelbrot = SampleMandelBrot(current, _cap, iterations);
 
         mandelbrotColor = GetColorFromIndex(mandelbrot);
     }
@@ -74,7 +68,7 @@ void CSFractals(uint3 id : SV_DispatchThreadID)
             return;
         }
         
-        int julia = SampleJulia(juliaPos, current, _cap + capDistance * _capMultiplier, iterations);
+        int julia = SampleJulia(juliaPos, current, _cap, iterations);
 
         juliaColor = GetColorFromIndex(julia);
     }

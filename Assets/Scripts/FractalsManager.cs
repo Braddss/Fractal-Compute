@@ -1,12 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
+using System.IO;
 using UnityEngine;
-using UnityEngine.Rendering;
 
-public class MandelbrotSet : MonoBehaviour
+public class FractalsManager : MonoBehaviour
 {
-    [SerializeField]
-    private ComputeShader mandelBrot;
     [SerializeField]
     private ComputeShader fractals;
     public RenderTexture fractalTexture;
@@ -16,8 +13,6 @@ public class MandelbrotSet : MonoBehaviour
     private float iterations;
     [SerializeField]
     private float cap;
-    [SerializeField]
-    private float capMultiplier;
 
     Vector2 position = new Vector2(-0.5f, 0f);
     Vector2 juliaPos = Vector2.zero;
@@ -25,32 +20,29 @@ public class MandelbrotSet : MonoBehaviour
     float zoom = 1;
 
     [SerializeField]
-    int r = 1;
+    Vector3Int rgb;
     [SerializeField]
-    int g = 1;
+    Vector3Int rgbOffset;
     [SerializeField]
-    int b = 1;
-    [SerializeField]
-    float test = 1;
-    [SerializeField]
-    [Range(0,1)]
+    [Range(0, 1)]
     float percentage;
     [SerializeField]
     bool useZoomIterations;
-    float speed = 1;
+    [SerializeField]
+    float zoomMultiplier = 1;
+    readonly float speed = 1;
+
+    [SerializeField]
+    private bool takeScreenshot = false;
 
     // Start is called before the first frame update
     void Start()
     {
+        Directory.CreateDirectory($"{Application.persistentDataPath}\\Screenshots");
+
         fractalTexture = new RenderTexture(2560, 1440, 1, RenderTextureFormat.ARGBFloat);
         fractalTexture.enableRandomWrite = true;
         fractalTexture.Create();
-
-        mandelBrot.SetTexture(0, "MandelTexture", fractalTexture);
-        mandelBrot.SetTexture(1, "MandelTexture", fractalTexture);
-        mandelBrot.SetTexture(2, "MandelTexture", fractalTexture);
-        mandelBrot.SetInt("_width", fractalTexture.width);
-        mandelBrot.SetInt("_height", fractalTexture.height);
 
         fractals.SetTexture(0, "_texture", fractalTexture);
         fractals.SetTexture(1, "_texture", fractalTexture);
@@ -58,15 +50,22 @@ public class MandelbrotSet : MonoBehaviour
         fractals.SetInt("_height", fractalTexture.height);
 
         transform.GetComponentInChildren<MeshRenderer>().material.mainTexture = fractalTexture;
-
     }
 
     // Update is called once per frame
     void Update()
     {
         UpdateInputs();
-        //UpdateShader();
         UpdateFractalsShader();
+
+        if (takeScreenshot)
+        {
+            takeScreenshot = false;
+
+            string path = $"{Application.persistentDataPath}\\Screenshots\\{DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss")}.png";
+
+            ScreenCapture.CaptureScreenshot(path, 2);
+        }
     }
 
     void UpdateInputs()
@@ -106,11 +105,11 @@ public class MandelbrotSet : MonoBehaviour
         }
         if (Input.GetKey(KeyCode.Q))
         {
-            zoom *= 1 - Time.deltaTime * speed;
+            zoom *= 1 - (Time.deltaTime * speed);
         }
         if (Input.GetKey(KeyCode.E))
         {
-            zoom *= 1 + Time.deltaTime * speed;
+            zoom *= 1 + (Time.deltaTime * speed);
         }
         if (Input.GetKey(KeyCode.R))
         {
@@ -131,48 +130,15 @@ public class MandelbrotSet : MonoBehaviour
             if (iterations < 0) iterations = 0;
         }
 
-        if (Input.GetKey(KeyCode.Y))
+        if (Input.GetKey(KeyCode.X))
         {
             percentage += Time.deltaTime;
             if (percentage > 1) percentage = 1;
         }
-        if (Input.GetKey(KeyCode.X))
+        if (Input.GetKey(KeyCode.C))
         {
             percentage -= Time.deltaTime;
             if (percentage < 0) percentage = 0;
-        }
-    }
-
-    void UpdateShader()
-    {
-        mandelBrot.SetInt("_iterations", (int)iterations);
-        mandelBrot.SetFloat("cap", cap);
-        mandelBrot.SetFloats("cVal", juliaPos.x, juliaPos.y);
-        mandelBrot.SetFloats("position", position.x, position.y);
-        mandelBrot.SetFloat("zoom", zoom);
-        mandelBrot.SetInt("r", r);
-        mandelBrot.SetInt("g", g);
-        mandelBrot.SetInt("b", b);
-        mandelBrot.SetFloat("test", test);
-        mandelBrot.SetFloat("percentage", percentage);
-        mandelBrot.SetBool("useZoomIterations", useZoomIterations);
-
-        int threadGroupsX = fractalTexture.width / 32 + 1;
-        int threadGroupsY = fractalTexture.height / 32 + 1;
-
-        mandelBrot.Dispatch(2, threadGroupsX, threadGroupsY, 1);
-        if (percentage == 0)
-        {
-            mandelBrot.Dispatch(1, threadGroupsX, threadGroupsY, 1);
-        }
-        else if (percentage == 1)
-        {
-            mandelBrot.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-        }
-        else
-        {
-            mandelBrot.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-            mandelBrot.Dispatch(1, threadGroupsX, threadGroupsY, 1);
         }
     }
 
@@ -180,17 +146,18 @@ public class MandelbrotSet : MonoBehaviour
     {
         fractals.SetInt("_iterations", (int)iterations);
         fractals.SetFloat("_cap", cap);
-        fractals.SetFloat("_capMultiplier", capMultiplier);
         fractals.SetFloats("_juliaPos", juliaPos.x, juliaPos.y);
         fractals.SetFloats("_position", position.x, position.y);
         fractals.SetFloat("_zoom", zoom);
-        fractals.SetInts("_rgb", r, g, b);
-        fractals.SetFloat("_test", test);
+        fractals.SetInts("_rgb", rgb.x, rgb.y, rgb.z);
+        fractals.SetInts("_rgbOffset", rgbOffset.x, rgbOffset.y, rgbOffset.z);
+        fractals.SetFloat("_test", zoomMultiplier);
         fractals.SetFloat("_percentage", percentage);
         fractals.SetBool("_useZoomIterations", useZoomIterations);
+        fractals.SetFloat("_zoomMultiplier", zoomMultiplier);
 
-        int threadGroupsX = fractalTexture.width / 32 + 1;
-        int threadGroupsY = fractalTexture.height / 32 + 1;
+        int threadGroupsX = (fractalTexture.width / 32) + 1;
+        int threadGroupsY = (fractalTexture.height / 32) + 1;
 
         fractals.Dispatch(1, threadGroupsX, threadGroupsY, 1);
         fractals.Dispatch(0, threadGroupsX, threadGroupsY, 1);
