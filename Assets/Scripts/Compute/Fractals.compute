@@ -1,0 +1,87 @@
+#pragma kernel CSFractals
+#pragma kernel CSCleanup
+
+#include "JuliaSet.cginc"
+#include "MandelbrotSet.cginc"
+
+RWTexture2D<float4> _texture;
+int _width;
+int _height;
+int _iterations;
+float _cap;
+float2 _position;
+float2 _juliaPos;
+float _zoom;
+int3 _rgb;
+float _test;
+float _percentage;
+bool _useZoomIterations;
+
+float3 GetColorFromIndex(int index)
+{
+    if (index < 0)
+    {
+        return float3(0, 0, 0);
+    }
+
+    if (_useZoomIterations)
+    {
+        float zoomVal = sqrt(_zoom);
+        return float3(((float) index / _rgb.r / zoomVal % 1), ((float) index / _rgb.g / zoomVal % 1), ((float) index / _rgb.b / zoomVal % 1));
+    }
+    
+    return float3(((float) index / _rgb.r % 1), ((float) index / _rgb.g % 1), ((float) index / _rgb.b % 1));
+}
+
+[numthreads(32, 32, 1)]
+void CSFractals(uint3 id : SV_DispatchThreadID)
+{
+    float2 extends = float2(1.5, 1.5 * 9 / 16) / (float) _zoom;
+    float2 min = (float2) _position - extends;
+    float2 max = (float2) _position + extends;
+    float currentX = min.x * (1 - ((float) id.x / _width)) + max.x * ((float) id.x / _width);
+    float currentY = min.y * (1 - ((float) id.y / _height)) + max.y * ((float) id.y / _height);
+    
+    int iterations = _useZoomIterations ? sqrt(_zoom) * _test : _iterations;
+    
+    Complex current;
+    current.real = currentX;
+    current.imaginary = currentY;
+    
+    float3 mandelbrotColor = float3(0, 0, 0);
+    if (_percentage > 0)
+    {
+        int mandelbrot = SampleMandelBrot(current, _cap, iterations);
+
+        mandelbrotColor = GetColorFromIndex(mandelbrot);
+    }
+
+    float3 juliaColor = float3(0, 0, 0);
+    
+    if (_percentage < 1)
+    {
+        Complex juliaPos;
+        juliaPos.real = _juliaPos.x;
+        juliaPos.imaginary = _juliaPos.y;
+        
+        if (CDistance(current, juliaPos) < 0.01 / _zoom)
+        {
+            _texture[id.xy] = float4(1, 1, 1, 1);
+            return;
+        }
+        
+        int julia = SampleJulia(juliaPos, current, _cap, iterations);
+
+        juliaColor = GetColorFromIndex(julia);
+    }
+    
+    float4 finalColor = float4(_percentage * mandelbrotColor + (1 - _percentage) * juliaColor, 1);
+    
+    _texture[id.xy] = finalColor;
+}
+
+[numthreads(32, 32, 1)]
+void CSCleanup(uint3 id : SV_DispatchThreadID)
+{
+    _texture[id.xy] = float4(0, 0, 0, 1);
+}

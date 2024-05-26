@@ -3,6 +3,8 @@
 #pragma kernel CSJulia
 #pragma kernel CSCleanup
 
+#include "ComplexNumbers.cginc"
+
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 RWTexture2D<float4> MandelTexture;
@@ -20,40 +22,6 @@ int b;
 float percentage;
 bool useZoomIterations;
 
-struct Complex
-{
-    float real;
-    float imaginary;
-};
-
-Complex CAdd(Complex one, Complex two)
-{
-    Complex result;
-    result.real = one.real + two.real;
-    result.imaginary = one.imaginary + two.imaginary;
-    return result;
-}
-
-Complex CSubtract(Complex one, Complex two)
-{
-    Complex result;
-    result.real = one.real - two.real;
-    result.imaginary = one.imaginary - two.imaginary;
-    return result;
-}
-
-Complex CMult(Complex one, Complex two)
-{
-    Complex result;
-    result.real = one.real * two.real - one.imaginary * two.imaginary;
-    result.imaginary = one.real * two.imaginary + one.imaginary * two.real;
-    return result;
-}
-
-float CMaginute(Complex one)
-{
-    return length(float2(one.real, one.imaginary));
-}
 
 [numthreads(32,32,1)]
 void CSMandelbrot (uint3 id : SV_DispatchThreadID)
