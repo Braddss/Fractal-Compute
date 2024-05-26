@@ -12,6 +12,10 @@ Currently the Mandelbrot set and Julia set are supported.
   
   **E, Q:** Zoom in, Zoom out
 
+  **R, F:** Increase iterations
+
+  **T, G:** Decrease iterations
+
 ### Controls for Julia set
   **I, J, K, L:** Move input on the complex plane (Up, Left, Down, Right)
   
